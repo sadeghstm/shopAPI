@@ -77,14 +77,14 @@ model OrderItem {
 
 model Cart {
   id        Int        @id @default(autoincrement())
-  user      User       @relation(fields: [userId], references: [id])
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    Int        @unique
-  items     CartItem[]
+  items     CartItem[] 
 }
 
 model CartItem {
   id         Int       @id @default(autoincrement())
-  cart       Cart      @relation(fields: [cartId], references: [id])
+  cart       Cart      @relation(fields: [cartId], references: [id],onDelete: Cascade)
   cartId     Int
   product    Product   @relation(fields: [productId], references: [id])
   productId  Int
@@ -128,3 +128,9 @@ model Wishlist {
   products  Product[] @relation("WishlistProducts")
 }
 
+model OTP {
+  id        Int      @id @default(autoincrement())
+  phone     String
+  code      Int
+  expiresAt DateTime
+}
