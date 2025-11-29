@@ -1,28 +1,27 @@
-
 generator client {
   provider = "prisma-client-js"
+  output   = "./node_modules/@prisma/client"
 }
 
 datasource db {
-  provider = "sqlite" 
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-
 model User {
-  id         Int       @id @default(autoincrement())
-  name       String
-  email      String    @unique
-  password   String
-  phone      String?
-  addresses  Address[]
-  orders     Order[]
-  cart       Cart?
-  reviews    Review[]
-  wishlist   Wishlist?
-  createdAt  DateTime  @default(now())
+  id        Int       @id @default(autoincrement())
+  name      String
+  email     String    @unique
+  password  String
+  phone     String?
+  addresses Address[]
+  orders    Order[]
+  cart      Cart?
+  wallet    Wallet?
+  reviews   Review[]
+  wishlist  Wishlist?
+  createdAt DateTime  @default(now())
 }
-
 
 model Admin {
   id        Int      @id @default(autoincrement())
@@ -34,13 +33,13 @@ model Admin {
 }
 
 model Category {
-  id        Int       @id @default(autoincrement())
-  name      String
-  products  Product[]
+  id       Int       @id @default(autoincrement())
+  name     String
+  products Product[]
 }
 
 model Product {
-  id          Int        @id @default(autoincrement())
+  id          Int         @id @default(autoincrement())
   name        String
   description String?
   price       Float
@@ -49,63 +48,62 @@ model Product {
   categoryId  Int?
   reviews     Review[]
   orderItems  OrderItem[]
-  wishlists Wishlist[] @relation("WishlistProducts")
+  wishlists   Wishlist[]  @relation("WishlistProducts")
   cartItems   CartItem[]
   createdAt   DateTime    @default(now())
 }
 
 model Order {
-  id         Int         @id @default(autoincrement())
-  user       User        @relation(fields: [userId], references: [id])
-  userId     Int
-  total      Float
-  status     String      @default("pending")
-  items      OrderItem[]
-  payment    Payment?
-  createdAt  DateTime    @default(now())
+  id        Int         @id @default(autoincrement())
+  user      User        @relation(fields: [userId], references: [id])
+  userId    Int
+  total     Float
+  status    String      @default("pending")
+  items     OrderItem[]
+  payment   Payment?
+  createdAt DateTime    @default(now())
 }
 
-
 model OrderItem {
-  id         Int       @id @default(autoincrement())
-  order      Order     @relation(fields: [orderId], references: [id])
-  orderId    Int
-  product    Product   @relation(fields: [productId], references: [id])
-  productId  Int
-  quantity   Int
+  id        Int     @id @default(autoincrement())
+  order     Order   @relation(fields: [orderId], references: [id])
+  orderId   Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  quantity  Int
 }
 
 model Cart {
-  id        Int        @id @default(autoincrement())
-  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int        @unique
-  items     CartItem[] 
+  id     Int        @id @default(autoincrement())
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId Int        @unique
+  items  CartItem[]
 }
 
 model CartItem {
-  id         Int       @id @default(autoincrement())
-  cart       Cart      @relation(fields: [cartId], references: [id],onDelete: Cascade)
-  cartId     Int
-  product    Product   @relation(fields: [productId], references: [id])
-  productId  Int
-  quantity   Int
+  id        Int     @id @default(autoincrement())
+  cart      Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId    Int
+  product   Product @relation(fields: [productId], references: [id])
+  productId Int
+  quantity  Int
 }
 
 model Payment {
-  id        Int      @id @default(autoincrement())
-  order     Order    @relation(fields: [orderId], references: [id])
-  orderId   Int      @unique
-  method    String
-  status    String   @default("unpaid")
-  paidAt    DateTime?
+  id      Int       @id @default(autoincrement())
+  order   Order     @relation(fields: [orderId], references: [id])
+  orderId Int       @unique
+  method  String
+  status  String    @default("unpaid")
+  paidAt  DateTime?
 }
 
 model Address {
-  id        Int      @id @default(autoincrement())
-  user      User     @relation(fields: [userId], references: [id])
-  userId    Int
-  city      String
-  street    String
+  id         Int     @id @default(autoincrement())
+  user       User    @relation(fields: [userId], references: [id])
+  userId     Int
+  city       String
+  street     String
   postalCode String?
 }
 
@@ -120,12 +118,11 @@ model Review {
   createdAt DateTime @default(now())
 }
 
-
 model Wishlist {
-  id        Int       @id @default(autoincrement())
-  user      User      @relation(fields: [userId], references: [id])
-  userId    Int       @unique
-  products  Product[] @relation("WishlistProducts")
+  id       Int       @id @default(autoincrement())
+  user     User      @relation(fields: [userId], references: [id])
+  userId   Int       @unique
+  products Product[] @relation("WishlistProducts")
 }
 
 model OTP {
@@ -133,4 +130,26 @@ model OTP {
   phone     String
   code      Int
   expiresAt DateTime
+}
+
+model Wallet {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  balance   Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User       @relation(fields: [userId], references: [id])
+  txs  WalletTx[]
+}
+
+model WalletTx {
+  id          Int      @id @default(autoincrement())
+  walletId    Int
+  amount      Int
+  type        String // 'refund', 'purchase', 'admin_add', 'admin_remove'
+  description String?
+  createdAt   DateTime @default(now())
+
+  wallet Wallet @relation(fields: [walletId], references: [id])
 }

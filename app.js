@@ -74,6 +74,12 @@ app.post('/user', async (req, res) => {
         cart: true
       }
     });
+    // after creating user
+    await prisma.wallet.create({
+      
+      data: { userId: id }
+    })
+
 
     res.json(newUser)
   } catch (error) {
@@ -270,29 +276,164 @@ app.post('/auth/send-otp', async (req, res) => {
   }
 })
 
-app.post('/auth/verify',async(req,res)=>{
-  const {phone,code} = req.body
-  
+app.post('/auth/verify', async (req, res) => {
+  const { phone, code } = req.body
+
   const data = otpStore[phone]
   console.log(data);
-  
-  if(!data)
-    return res.status(400).json({message:"not found!"})
-  if(data.expireAt<Date.now())
-    return res.status(400).json({message:"code has been expired."})
-  if(data.code != code)
+
+  if (!data)
+    return res.status(400).json({ message: "not found!" })
+  if (data.expireAt < Date.now())
+    return res.status(400).json({ message: "code has been expired." })
+  if (data.code != code)
     return res.status(400).json("Invalid Code!")
 
-  const foundUser =await prisma.user.findFirst({
-    where:{phone},
-    select:{name:true}
+  const foundUser = await prisma.user.findFirst({
+    where: { phone },
+    select: { name: true }
   })
-    smsService.sendSuccessfulAuthSMS(phone,foundUser.name)
-    console.log(foundUser.name);
-    
-    delete otpStore[phone]
+  smsService.sendSuccessfulAuthSMS(phone, foundUser.name)
+  console.log(foundUser.name);
 
-    res.json({message:"Verification Successful!"})
+  delete otpStore[phone]
+
+  res.json({ message: "Verification Successful!" })
 })
+
+
+//Wallet:
+app.get('/wallet/:userId', async (req, res) => {
+  const userId = Number(req.params.userId);
+  const wallet = await prisma.wallet.findUnique({ where: { userId } });
+  res.json(wallet);
+  
+});
+
+app.post('/wallet/:userId/deposit', async (req, res) => {
+  const { amount, type, description } = req.body;
+  const userId = Number(req.params.userId);
+
+  const wallet = await prisma.wallet.findUnique({ where: { userId } });
+
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.walletTx.create({
+      data: {
+        walletId: wallet.id,
+        amount: Number(amount),
+        type: type || 'refund',
+        description
+      }
+    });
+
+    return await tx.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: wallet.balance + Number(amount) }
+    });
+  });
+
+  res.json(result);
+});
+
+app.post('/wallet/:userId/withdraw', async (req, res) => {
+  const userId = Number(req.params.userId);
+  const { amount } = req.body;
+
+  const wallet = await prisma.wallet.findUnique({ where: { userId }});
+
+  if (wallet.balance < amount)
+    return res.status(400).json({ error: 'Insufficient balance' });
+
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.walletTx.create({
+      data: {
+        walletId: wallet.id,
+        amount: -Number(amount),
+        type: 'purchase',
+      }
+    });
+
+    return await tx.wallet.update({
+      where: { id: wallet.id },
+      data: { balance: wallet.balance - Number(amount) }
+    });
+  });
+
+  res.json(result);
+});
+
+app.post('/wallet/:userId/purchase', async (req, res) => {
+  const userId = parseInt(req.params.userId);
+  const { amount, orderId } = req.body;
+
+  const wallet = await prisma.wallet.findUnique({ where: { userId } });
+  if (!wallet || wallet.balance < amount)
+    return res.status(400).json({ error: "Insufficient funds" });
+
+  const result = await prisma.$transaction(async (tx) => {
+    const updated = await tx.wallet.update({
+      where: { userId },
+      data: { balance: { decrement: amount } }
+    });
+
+    await tx.walletTx.create({
+      data: {
+        walletId: updated.id,
+        amount: -amount,
+        type: "PURCHASE",
+        description: `Order #${orderId}`
+      }
+    });
+
+    return updated;
+  });
+
+  res.json(result);
+});
+
+// @ts-ignore
+app.post('/wallet/:userId/refund', async (req, res) => {
+  const userId = parseInt(req.params.userId);
+  const { amount, orderId, reason } = req.body;
+
+  const refundAmount = Math.abs(amount);
+
+  const result = await prisma.$transaction(async (tx) => {
+    const updated = await tx.wallet.upsert({
+      where: { userId },
+      create: { userId, balance: refundAmount },
+      update: { balance: { increment: refundAmount } }
+    });
+
+    await tx.walletTx.create({
+      data: {
+        walletId: updated.id,
+        amount: refundAmount,
+        type: "REFUND",
+        description: `Refund for order #${orderId}: ${reason}`
+      }
+    });
+
+    return updated;
+  });
+
+  res.json(result);
+});
+
+app.get('/wallet/:userId/transactions', async (req, res) => {
+  const userId = parseInt(req.params.userId);
+
+  const wallet = await prisma.wallet.findUnique({
+    where: { userId },
+    include: { txs: { orderBy: { createdAt: 'desc' } } }
+  });
+
+  if (!wallet)
+    return res.json({ txs: [] });
+
+  res.json(wallet.txs);
+});
+
+
 
 app.listen(process.env.PORT, () => console.log('Server running on Port:', process.env.PORT));
