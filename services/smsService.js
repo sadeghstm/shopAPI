@@ -1,6 +1,5 @@
 
 const Kavenegar = require('kavenegar')
-const {otpStore} = require('../globalStore')
 require('dotenv').config();
 
 
@@ -21,11 +20,10 @@ const sendSuccessfulAuthSMS = (phone,name)=>{
     SMS.Send({message:` سلام ${name}:) به پروژه فروشگاه آنلاین صادق خوش آمدید`,receptor:phone,sender:"2000660110"},
         (res,status)=>{
         console.log(res);
-        console.log(status); 
+        console.log(status);  
     })
 }
 module.exports={
     sendOTP,
     sendSuccessfulAuthSMS
-
 }

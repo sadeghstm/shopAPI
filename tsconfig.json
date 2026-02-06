@@ -3,7 +3,7 @@
   "compilerOptions": {
     "types": ["node"],
     "allowJs": true,
-    "checkJs": true,
+    "checkJs": false,
     "target": "ES6",
     "module": "commonjs",
     "moduleResolution": "node",

@@ -1,7 +1,0 @@
--- CreateTable
-CREATE TABLE "OTP" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "phone" TEXT NOT NULL,
-    "code" INTEGER NOT NULL,
-    "expiresAt" DATETIME NOT NULL
-);
