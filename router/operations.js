@@ -7,9 +7,9 @@ const { authMiddleware } = require('../middlewares/auth')
 
 operationsRouter.use(authMiddleware)
 
-operationsRouter.post('/:userId/purchase',operationsController.purchase)
-operationsRouter.post('/:userId/refund',operationsController.refund)
-operationsRouter.get('/:userId/transactions',operationsController.getTransactions)
+operationsRouter.post('/purchase',operationsController.purchase)
+operationsRouter.post('/refund',operationsController.refund)
+operationsRouter.get('/transactions',operationsController.getTransactions)
 
 
 

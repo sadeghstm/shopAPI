@@ -1,15 +1,19 @@
 
 const {PrismaClient} = require('@prisma/client')
 const prisma = new PrismaClient({})
+const redisClient = require('../redisHelper/redisConnection')
+const bcrypt = require("bcrypt")
+const {logOut} = require("../controllers/authentication")
 
 
 
 exports.register = async (req, res) => {
-  const { id, username, email, password, phone } = req.body
+  const { username, email, password, phone } = req.body
   try {
+    const hashed = await bcrypt.hash(password, 10);
     const newUser = await prisma.user.create({
       data: {
-        id, username, email, password, phone,
+        username, email, password:hashed, phone,
         cart: {
           create: {}
         }
@@ -19,7 +23,7 @@ exports.register = async (req, res) => {
       }
     });
     await prisma.wallet.create({
-      data: { userId: id }
+      data: { userId: newUser.id }
     })
 
 
@@ -44,7 +48,9 @@ exports.register = async (req, res) => {
 
 exports.edit = async (req, res) => {
   try {
-    const id = parseInt(req.params.id)
+    console.log(req.user.id);
+    const id = req.user.id
+    
     const { username, email, password, phone } = req.body
     const updatedUser = await prisma.user.update({
       where: { id },
@@ -56,7 +62,7 @@ exports.edit = async (req, res) => {
   }
 }
 exports.get = async (req, res) => {
-  const id = parseInt(req.params.id)
+  const id = req.user.id
   console.log(id);
 
   try {
@@ -72,7 +78,17 @@ exports.get = async (req, res) => {
 
 exports.remove =  async (req, res) => {
   try {
-    const id = parseInt(req.params.id)
+    const token = req.cookies?.token
+    await redisClient.delToken(token)
+
+
+    res.cookie("token", "", {
+        httpOnly: true,
+        maxAge: 0,
+        path: '/'
+    })
+    const id = req.user.id
+    
     await prisma.user.delete({
       where: { id },
     })

@@ -7,9 +7,9 @@ const { authMiddleware } = require('../middlewares/auth')
 walletRouter.use(authMiddleware)
 
 
-walletRouter.get('/:userId',walletController.get)
-walletRouter.post('/:userId/deposit',walletController.deposit)
-walletRouter.post('/:userId/withdraw',walletController.withdraw)
+walletRouter.get('/',walletController.get)
+walletRouter.post('/deposit',walletController.deposit)
+walletRouter.post('/withdraw',walletController.withdraw)
 
 
 

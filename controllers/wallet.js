@@ -6,14 +6,14 @@ const prisma = new PrismaClient
 
 //Wallet:
 exports.get =  async (req, res) => {
-  const userId = Number(req.user.userId);
+  const userId = req.user.id;
   const wallet = await prisma.wallet.findUnique({ where: { userId } });
   res.json(wallet);
 };
 
 exports.deposit = async (req, res) => {
   const { amount, type, description } = req.body;
-  const userId = Number(req.user.userId);
+  const userId = req.user.id;
 
   const wallet = await prisma.wallet.findUnique({ where: { userId } });
 
@@ -37,7 +37,7 @@ exports.deposit = async (req, res) => {
 };
 
 exports.withdraw =  async (req, res) => {
-  const userId = Number(req.user.userId);
+  const userId = req.user.id;
   const { amount } = req.body;
 
   const wallet = await prisma.wallet.findUnique({ where: { userId }});

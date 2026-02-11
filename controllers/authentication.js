@@ -3,8 +3,8 @@ const { PrismaClient } = require('@prisma/client')
 const prisma = new PrismaClient
 const smsService = require('../services/smsService')
 
-const redisClient  = require('../redisHelper/redisConnection')
-
+const redisClient = require('../redisHelper/redisConnection')
+const bcrypt = require('bcrypt')
 
 const { errorResponse, successResponse } = require('../helpers/response')
 const { randomUUID } = require('crypto')
@@ -87,29 +87,31 @@ exports.verificationUserPass = async (req, res) => {
             return res.send({ message: "already logged in!" })
         }
     }
-
-    const user = await prisma.user.findFirst({
-        where: {
-            password,
-            username
-        }
+    const user = await prisma.user.findUnique({
+        where: { username }
     })
 
-    if (user) {
-        const token = await redisClient.setToken(user.id)
-        res.cookie("token", token, {
-            httpOnly: true,
-            maxAge: 7 * 24 * 60 * 60 * 1000,
-            path: '/'
-        })
-        return res.json({ message: "login successful :)" })
+    if (!user) {
+        return res.status(403).json({ message: "username/password is incorrect" })
     }
-    res.send({ message: "username/password is incorrect" }).status(403)
+
+    const matched = bcrypt.compare(password, user.password)
+    if (!matched) {
+        return res.status(403).json({ message: "username/password is incorrect" })
+    }
+
+    const token = await redisClient.setToken(user.id)
+
+    res.cookie("token", token, {
+        httpOnly: true,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: '/'
+    })
+    return res.json({ message: "login successful :)" })
 }
 
 
 exports.logOut = async (req, res) => {
-
     try {
         const token = req.cookies?.token
         await redisClient.delToken(token)

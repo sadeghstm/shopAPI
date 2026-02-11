@@ -8,7 +8,7 @@ generator client {
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
+  id String @id @default(uuid())
   username  String    @unique
   password  String
   role      String    @default("user")
@@ -21,7 +21,6 @@ model User {
   reviews   Review[]
   wishlist  Wishlist?
   createdAt DateTime  @default(now())
-  otps      OTP[]
 }
 
 model Category {
@@ -34,6 +33,7 @@ model Product {
   id          Int         @id @default(autoincrement())
   title       String
   description String?
+  imageUrl    String?
   price       Int
   stock       Int         @default(1)
   category    Category?   @relation(fields: [categoryId], references: [id])
@@ -46,9 +46,9 @@ model Product {
 }
 
 model Order {
-  id        Int         @id @default(autoincrement())
+  id        String      @id @default(uuid())
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int
+  userId    String
   total     Int
   status    String      @default("pending")
   items     OrderItem[]
@@ -59,7 +59,7 @@ model Order {
 model OrderItem {
   id        Int     @id @default(autoincrement())
   order     Order   @relation(fields: [orderId], references: [id])
-  orderId   Int
+  orderId   String
   product   Product @relation(fields: [productId], references: [id])
   productId Int
   quantity  Int
@@ -68,7 +68,7 @@ model OrderItem {
 model Cart {
   id     Int        @id @default(autoincrement())
   user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId Int        @unique
+  userId String     @unique
   items  CartItem[]
 }
 
@@ -82,9 +82,9 @@ model CartItem {
 }
 
 model Payment {
-  id      Int       @id @default(autoincrement())
+  id      String       @id @default(uuid())
   order   Order     @relation(fields: [orderId], references: [id])
-  orderId Int       @unique
+  orderId String       @unique
   method  String
   status  String    @default("unpaid")
   paidAt  DateTime?
@@ -93,7 +93,7 @@ model Payment {
 model Address {
   id         Int     @id @default(autoincrement())
   user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     Int
+  userId     String
   city       String
   street     String
   postalCode String?
@@ -102,7 +102,7 @@ model Address {
 model Review {
   id        Int      @id @default(autoincrement())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    Int
+  userId    String
   product   Product  @relation(fields: [productId], references: [id])
   productId Int
   rating    Int
@@ -113,25 +113,13 @@ model Review {
 model Wishlist {
   id       Int       @id @default(autoincrement())
   user     User      @relation(fields: [userId], references: [id])
-  userId   Int       @unique
+  userId   String       @unique
   products Product[] @relation("WishlistProducts")
-}
-
-model OTP {
-  id        Int      @id @default(autoincrement())
-  userId    Int?
-  phone     String
-  code      String
-  expiresAt DateTime
-
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([phone])
 }
 
 model Wallet {
   id        Int      @id @default(autoincrement())
-  userId    Int      @unique
+  userId    String      @unique
   balance   Int      @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -148,7 +136,7 @@ model WalletTx {
   description String?
   createdAt   DateTime @default(now())
 
-  wallet Wallet @relation(fields: [walletId], references: [id])
+  wallet Wallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
 }
 
 model Banned {

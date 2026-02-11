@@ -1,13 +1,14 @@
 
 const {PrismaClient} = require('@prisma/client')
+
 const prisma = new PrismaClient()
 
 
 exports.getCart = async (req, res) => {
-  const userID = parseInt(req.params.userId)
+  const userId = req.user.id
   try {
     const cart = await prisma.cart.findUnique({
-      where: { userId: userID },
+      where: { userId },
       include: {
         items:
         {
@@ -25,7 +26,7 @@ exports.getCart = async (req, res) => {
 
 // CartItem Operations:
 exports.addItem = async (req, res) => {
-  const userId = req.user.userId
+  const userId = req.user.id
   const { productId, quantity } = req.body
 
   try {
@@ -46,6 +47,9 @@ exports.addItem = async (req, res) => {
       // where:{ items:{include:{productId:productId}}}
     })
 
+    if(product.stock<quantity){
+      return res.send({message:"out of stock!"})
+    }
     let item;
     if (!existingItem) {
       item = await prisma.cartItem.create({
@@ -55,12 +59,20 @@ exports.addItem = async (req, res) => {
           quantity: 1
         }
       })
+      await prisma.product.update({
+        where:{id:product.id},
+        data:{stock:product.stock-quantity}
+      })
       return res.json({message:"item added to cart."})
     } else {
       item = await prisma.cartItem.update({
         where: { id: existingItem.id },
         data: { quantity: { increment: quantity } }
       })  
+            await prisma.product.update({
+        where:{id:product.id},
+        data:{stock:product.stock-quantity}
+      })
       return res.json({message:"Item added to basket successfully!",quantity: item.quantity})
     }
   } catch (error) {
@@ -70,11 +82,9 @@ exports.addItem = async (req, res) => {
 
 //change amount of an item in basket
 exports.changeAmount = async (req, res) => {
-
-  const {userId,productId} = {
-    userId:parseInt(req.params.userId),
-    productId:parseInt(req.params.productId)
-  }
+  const userId = req.user.id
+  const productId = parseInt(req.params.productId)
+  
   
   try {
     const cart = await prisma.cart.findUnique({
@@ -97,6 +107,7 @@ exports.changeAmount = async (req, res) => {
       const newQuantity = existingItem.quantity - 1;
       if (newQuantity < 1) {
         await prisma.cartItem.delete({ where: { id: existingItem.id } });
+        await prisma.product.update({where:{id:productId},data:{stock:{increment:1}}})
         return res.json({ message: 'Item removed (quantity < 1)' });
       }
 
@@ -104,6 +115,7 @@ exports.changeAmount = async (req, res) => {
         where: { id: existingItem.id },
         data: { quantity: newQuantity },
       });
+      await prisma.product.update({where:{id:productId},data:{stock:{increment:1}}})
 
       res.json({ message: 'Item decreased successfuly',quantity:newQuantity });
     }
@@ -111,7 +123,7 @@ exports.changeAmount = async (req, res) => {
     console.error(error.message);
   }
 
-  // const userId = parseInt(req.params.userId);
+  // const userId = req.user.id
   // // const itemId = parseInt(req.params.itemId);
   // const { change } = req.body;
 
@@ -141,7 +153,7 @@ exports.changeAmount = async (req, res) => {
 };
 
 exports.deleteItem = async (req, res) => {
-  const userId = parseInt(req.params.userId);
+  const userId = req.user.id
   const productId = parseInt(req.params.productId)
 
   try {
@@ -154,6 +166,8 @@ exports.deleteItem = async (req, res) => {
     }
 
     await prisma.cartItem.delete({ where: { id: item.id } });
+    await prisma.product.update({where:{id:productId},data:{stock:{increment:item.quantity}}})
+
     res.json({ message: 'Item deleted successfully' });
   } catch (err) {
     res.status(400).json({ error: err.message });

@@ -3,7 +3,7 @@ const {PrismaClient} = require('@prisma/client')
 const prisma = new PrismaClient
 
 exports.purchase = async (req, res) => {
-  const userId = parseInt(req.user.userId);
+  const userId = req.user.id;
   const { amount } = req.body;
 
   const wallet = await prisma.wallet.findUnique({ where: { userId } });
@@ -56,50 +56,10 @@ exports.purchase = async (req, res) => {
 
   res.json(result);
 };
-// exports.purchase = async (req, res) => {
-//   const userId = parseInt(req.user.userId);
-//   const { amount } = req.body;
-
-//   const wallet = await prisma.wallet.findUnique({ where: { userId } });
-//   if (!wallet || wallet.balance < amount)
-//     return res.status(400).json({ error: "Insufficient balance" });
-
-//   const cart =await prisma.cart.findUnique({
-//     where:{userId},
-//     select:{items:true}
-//   })
-//   const result = await prisma.$transaction(async (tx) => {
-//     const updated = await tx.wallet.update({
-//       where: { userId },
-//       data: { balance: { decrement: amount } }
-//     });
-//     const order = await prisma.order.create({
-//       data:{
-//         userId:userId,
-//         total:amount,
-//         status:"paid",
-//         items:cart.items,
-//       }
-//     })
-
-//     await tx.walletTx.create({
-//       data: {
-//         walletId: updated.id,
-//         amount: -amount,
-//         type: "PURCHASE",
-//         description: `Order #${order.id}`
-//       }
-//     });
-
-//     return updated;
-//   });
-
-//   res.json(result);
-// };
 
 // @ts-ignore
 exports.refund = async (req, res) => {
-  const userId = parseInt(req.user.userId);
+  const userId = req.user.id;
   const { amount, orderId, reason } = req.body;
 
   const refundAmount = Math.abs(amount);
@@ -127,7 +87,7 @@ exports.refund = async (req, res) => {
 };
 
 exports.getTransactions = async (req, res) => {
-  const userId = parseInt(req.user.userId);
+  const userId = req.user.id;
 
   const wallet = await prisma.wallet.findUnique({
     where: { userId },

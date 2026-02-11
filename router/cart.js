@@ -7,10 +7,10 @@ const { authMiddleware } = require('../middlewares/auth')
 
 cartRouter.use(authMiddleware)
 
-cartRouter.get('/:userId',cartController.getCart)
-cartRouter.post('/:userId/item',cartController.addItem)
-cartRouter.patch('/:userId/item/:productId',cartController.changeAmount)
-cartRouter.delete('/:userId/item/:productId',cartController.deleteItem)
+cartRouter.get('/',cartController.getCart)
+cartRouter.post('/',cartController.addItem)
+cartRouter.patch('/:productId',cartController.changeAmount)
+cartRouter.delete('/:productId',cartController.deleteItem)
 
 
 
